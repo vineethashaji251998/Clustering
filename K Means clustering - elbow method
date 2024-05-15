@@ -1,0 +1,75 @@
+import pandas as pd
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+
+data_path = r"D:\Analysis\Scatter_Plot\Cluster analysis\Mild\MILDVSHEALTHY.txt"
+
+try:
+    df = pd.read_csv(data_path, delimiter='\t')  # Assuming the file is tab-delimited
+except FileNotFoundError:
+    print(f"The file at {data_path} was not found.")
+    exit()
+except pd.errors.ParserError as e:
+    print(f"Parsing error: {e}")
+    exit()
+
+print("First few rows of the data:")
+print(df.head())
+
+if 'Genes' in df.columns and 'FC' in df.columns and 'Pvalue' in df.columns:
+    features = df[['FC', 'Pvalue']]
+else:
+    print("The required columns 'Genes', 'FC', and 'Pvalue' are not present in the data.")
+    exit()
+
+scaler = StandardScaler()
+scaled_features = scaler.fit_transform(features)
+
+wcss = []
+for i in range(1, 11):
+    kmeans = KMeans(n_clusters=i, init='k-means++', random_state=42)
+    kmeans.fit(scaled_features)
+    wcss.append(kmeans.inertia_)
+
+plt.figure(figsize=(10, 6))
+plt.plot(range(1, 11), wcss, marker='o')
+plt.xlabel('Number of Clusters')
+plt.ylabel('WCSS')
+plt.title('Elbow Method for Optimal Number of Clusters')
+plt.show()
+
+optimal_clusters = 3  # Adjust the number of clusters based on the elbow plot
+kmeans = KMeans(n_clusters=optimal_clusters, init='k-means++', random_state=42)
+kmeans.fit(scaled_features)
+labels = kmeans.predict(scaled_features)
+
+df['Cluster'] = labels
+
+plt.figure(figsize=(10, 6))
+scatter = plt.scatter(scaled_features[:, 0], scaled_features[:, 1], c=labels, s=50, cmap='viridis')
+centroids = kmeans.cluster_centers_
+plt.scatter(centroids[:, 0], centroids[:, 1], c='red', s=200, alpha=0.75, marker='X')
+plt.xlabel('Fold Change (FC)')
+plt.ylabel('P-value')
+plt.title('K-means Clustering of Genes')
+
+max_abs_fold_change = max(abs(scaled_features[:, 0]))
+plt.xlim(-max_abs_fold_change, max_abs_fold_change)
+
+plt.legend(handles=scatter.legend_elements()[0], labels=[f'Cluster {i}' for i in range(optimal_clusters)])
+plt.show()
+
+print("Data with cluster labels:")
+print(df.head())
+
+if 'Genes' in df.columns and 'FC' in df.columns and 'Pvalue' in df.columns and 'Cluster' in df.columns:
+    output_table = df[['Genes', 'FC', 'Pvalue', 'Cluster']]
+    print("Output table:")
+    print(output_table.head())
+
+    output_csv_path = 'clustered_genes.csv'
+    output_table.to_csv(output_csv_path, index=False)
+    print(f"The clustered genes have been saved to {output_csv_path}")
+else:
+    print("One or more required columns ('Genes', 'FC', 'Pvalue', 'Cluster') are not present in the data.")

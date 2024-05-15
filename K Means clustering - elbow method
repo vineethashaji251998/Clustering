@@ -4,7 +4,7 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 
 # Define the file path
-data_path = r"D:\VINEETHA\COVID_19_Abinand Sir\NEW_21032024\SAMPLE_DATA\Mapping\Analysis\Scatter_Plot\Cluster analysis\Mild\MILDVSHEALTHY.txt"
+data_path = r"D:\Mapping\Analysis\Scatter_Plot\Cluster analysis\Mild\MILDVSHEALTHY.txt"
 
 # Load the data with error handling
 try:

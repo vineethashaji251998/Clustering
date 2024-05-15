@@ -3,8 +3,10 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 
-data_path = r"D:\Analysis\Scatter_Plot\Cluster analysis\Mild\MILDVSHEALTHY.txt"
+# Define the file path
+data_path = r"D:\VINEETHA\COVID_19_Abinand Sir\NEW_21032024\SAMPLE_DATA\Mapping\Analysis\Scatter_Plot\Cluster analysis\Mild\MILDVSHEALTHY.txt"
 
+# Load the data with error handling
 try:
     df = pd.read_csv(data_path, delimiter='\t')  # Assuming the file is tab-delimited
 except FileNotFoundError:
@@ -14,24 +16,29 @@ except pd.errors.ParserError as e:
     print(f"Parsing error: {e}")
     exit()
 
+# Display the first few rows to understand the structure
 print("First few rows of the data:")
 print(df.head())
 
+# Check if the necessary columns are present
 if 'Genes' in df.columns and 'FC' in df.columns and 'Pvalue' in df.columns:
     features = df[['FC', 'Pvalue']]
 else:
     print("The required columns 'Genes', 'FC', and 'Pvalue' are not present in the data.")
     exit()
 
+# Scale the data using StandardScaler
 scaler = StandardScaler()
 scaled_features = scaler.fit_transform(features)
 
+# Elbow method to determine the optimal number of clusters
 wcss = []
 for i in range(1, 11):
     kmeans = KMeans(n_clusters=i, init='k-means++', random_state=42)
     kmeans.fit(scaled_features)
     wcss.append(kmeans.inertia_)
 
+# Plotting the Elbow graph
 plt.figure(figsize=(10, 6))
 plt.plot(range(1, 11), wcss, marker='o')
 plt.xlabel('Number of Clusters')
@@ -39,35 +46,50 @@ plt.ylabel('WCSS')
 plt.title('Elbow Method for Optimal Number of Clusters')
 plt.show()
 
+# Apply K-means clustering using sklearn
 optimal_clusters = 3  # Adjust the number of clusters based on the elbow plot
 kmeans = KMeans(n_clusters=optimal_clusters, init='k-means++', random_state=42)
 kmeans.fit(scaled_features)
 labels = kmeans.predict(scaled_features)
 
+# Add the cluster labels to the original dataframe
 df['Cluster'] = labels
 
+# Visualize the results
 plt.figure(figsize=(10, 6))
-scatter = plt.scatter(scaled_features[:, 0], scaled_features[:, 1], c=labels, s=50, cmap='viridis')
-centroids = kmeans.cluster_centers_
-plt.scatter(centroids[:, 0], centroids[:, 1], c='red', s=200, alpha=0.75, marker='X')
+
+# Define colors and markers for each cluster
+colors = ['darkblue', 'darkgreen', 'purple']
+markers = ['o', 's', '^']
+
+# Plot each cluster separately with different colors and markers
+for i in range(optimal_clusters):
+    cluster_data = scaled_features[labels == i]
+    plt.scatter(cluster_data[:, 0], cluster_data[:, 1], label=f'Cluster {i}', s=50, alpha=0.5, color=colors[i], marker=markers[i])
+
 plt.xlabel('Fold Change (FC)')
 plt.ylabel('P-value')
 plt.title('K-means Clustering of Genes')
+plt.axvline(x=0, color='gray', linestyle='--')  # Adding a vertical line at x=0 for Fold Change
 
+# Centering the x-axis at 0 for Fold Change
 max_abs_fold_change = max(abs(scaled_features[:, 0]))
 plt.xlim(-max_abs_fold_change, max_abs_fold_change)
 
-plt.legend(handles=scatter.legend_elements()[0], labels=[f'Cluster {i}' for i in range(optimal_clusters)])
+plt.legend()
 plt.show()
 
+# Display the first few rows of the dataframe with cluster labels
 print("Data with cluster labels:")
 print(df.head())
 
+# Output the table with the clusters
 if 'Genes' in df.columns and 'FC' in df.columns and 'Pvalue' in df.columns and 'Cluster' in df.columns:
     output_table = df[['Genes', 'FC', 'Pvalue', 'Cluster']]
     print("Output table:")
     print(output_table.head())
 
+    # Save the output table to a CSV file
     output_csv_path = 'clustered_genes.csv'
     output_table.to_csv(output_csv_path, index=False)
     print(f"The clustered genes have been saved to {output_csv_path}")
